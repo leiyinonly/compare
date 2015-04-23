@@ -1,4 +1,4 @@
-/*M///////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
 //
 //  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
 //
@@ -7,68 +7,53 @@
 //  copy or use the software.
 //
 //
-//                        Intel License Agreement
-//                For Open Source Computer Vision Library
+//                 License For Embedded Computer Vision Library
 //
-// Copyright (C) 2000, Intel Corporation, all rights reserved.
+// Copyright (c) 2008-2013, EMCV Project,
+// Copyright (c) 2000-2007, Intel Corporation,
+// All rights reserved.
 // Third party copyrights are property of their respective owners.
 //
-// Redistribution and use in source and binary forms, with or without modification,
+// Redistribution and use in source and binary forms, with or without modification, 
 // are permitted provided that the following conditions are met:
 //
-//   * Redistribution's of source code must retain the above copyright notice,
-//     this list of conditions and the following disclaimer.
+//    * Redistributions of source code must retain the above copyright notice, 
+//      this list of conditions and the following disclaimer.
+//    * Redistributions in binary form must reproduce the above copyright notice, 
+//      this list of conditions and the following disclaimer in the documentation 
+//      and/or other materials provided with the distribution.
+//    * Neither the name of the copyright holders nor the names of their contributors 
+//      may be used to endorse or promote products derived from this software 
+//      without specific prior written permission.
 //
-//   * Redistribution's in binary form must reproduce the above copyright notice,
-//     this list of conditions and the following disclaimer in the documentation
-//     and/or other materials provided with the distribution.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+// IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
+// INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT 
+// NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, 
+// OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
+// OF SUCH DAMAGE.
 //
-//   * The name of Intel Corporation may not be used to endorse or promote products
-//     derived from this software without specific prior written permission.
-//
-// This software is provided by the copyright holders and contributors "as is" and
-// any express or implied warranties, including, but not limited to, the implied
-// warranties of merchantability and fitness for a particular purpose are disclaimed.
-// In no event shall the Intel Corporation or contributors be liable for any direct,
-// indirect, incidental, special, exemplary, or consequential damages
-// (including, but not limited to, procurement of substitute goods or services;
-// loss of use, data, or profits; or business interruption) however caused
-// and on any theory of liability, whether in contract, strict liability,
-// or tort (including negligence or otherwise) arising in any way out of
-// the use of this software, even if advised of the possibility of such damage.
-//
-//M*/
-
+// Contributors:
+//    * Shiqi Yu (Shenzhen Institute of Advanced Technology, Chinese Academy of Sciences)
 
 #ifndef _CXCORE_H_
 #define _CXCORE_H_
 
-#ifdef __IPL_H__
-#define HAVE_IPL
-#endif
-
-#ifndef SKIP_INCLUDES
-  #if defined HAVE_IPL && !defined __IPL_H__
-    #ifndef _INC_WINDOWS
-        #define CV_PRETEND_WINDOWS
-        #define _INC_WINDOWS
-        typedef struct tagBITMAPINFOHEADER BITMAPINFOHEADER;
-        typedef int BOOL;
-    #endif
-    #if defined WIN32 || defined WIN64
-      #include "ipl.h"
-    #else
-      #include "ipl/ipl.h"
-    #endif
-    #ifdef CV_PRETEND_WINDOWS
-        #undef _INC_WINDOWS
-    #endif
-  #endif
-#endif // SKIP_INCLUDES
-
 #include "cxtypes.h"
+#include "cxmisc.h"
 #include "cxerror.h"
-#include "cvver.h"
+
+
+
+#define icvIplToCvDepth( depth ) \
+    icvDepthToType[(((depth) & 255) >> 2) + ((depth) < 0)]
+
+
+const int CV_DEPTH_BYTES[8]={1, 1, 2, 2, 4, 4, 8, 0};
 
 #ifdef __cplusplus
 extern "C" {
@@ -92,6 +77,10 @@ CVAPI(void*)  cvAlloc( size_t size );
 */
 CVAPI(void)   cvFree_( void* ptr );
 #define cvFree(ptr) (cvFree_(*(ptr)), *(ptr)=0)
+//CVAPI(int)   cvFree( void** ptr );
+
+/* memory info */
+CV_IMPL void cvMemoryInfo(int *use, int *peak);
 
 /* Allocates and initializes IplImage header */
 CVAPI(IplImage*)  cvCreateImageHeader( CvSize size, int depth, int channels );
@@ -668,13 +657,6 @@ CVAPI(int)  cvCheckArr( const CvArr* arr, int flags CV_DEFAULT(0),
                         double min_val CV_DEFAULT(0), double max_val CV_DEFAULT(0));
 #define cvCheckArray cvCheckArr
 
-#define CV_RAND_UNI      0
-#define CV_RAND_NORMAL   1
-CVAPI(void) cvRandArr( CvRNG* rng, CvArr* arr, int dist_type,
-                      CvScalar param1, CvScalar param2 );
-
-CVAPI(void) cvRandShuffle( CvArr* mat, CvRNG* rng,
-                           double iter_factor CV_DEFAULT(1.));
 
 /* Finds real roots of a cubic equation */
 CVAPI(int) cvSolveCubic( const CvMat* coeffs, CvMat* roots );
@@ -1291,18 +1273,6 @@ CVAPI(void)  cvEllipse( CvArr* img, CvPoint center, CvSize axes,
                         CvScalar color, int thickness CV_DEFAULT(1),
                         int line_type CV_DEFAULT(8), int shift CV_DEFAULT(0));
 
-CV_INLINE  void  cvEllipseBox( CvArr* img, CvBox2D box, CvScalar color,
-                               int thickness CV_DEFAULT(1),
-                               int line_type CV_DEFAULT(8), int shift CV_DEFAULT(0) )
-{
-    CvSize axes;
-    axes.width = cvRound(box.size.height*0.5);
-    axes.height = cvRound(box.size.width*0.5);
-    
-    cvEllipse( img, cvPointFrom32f( box.center ), axes, box.angle,
-               0, 360, color, thickness, line_type, shift );
-}
-
 /* Fills convex or monotonous polygon. */
 CVAPI(void)  cvFillConvexPoly( CvArr* img, CvPoint* pts, int npts, CvScalar color,
                                int line_type CV_DEFAULT(8), int shift CV_DEFAULT(0));
@@ -1726,25 +1696,11 @@ CVAPI(void*) cvLoad( const char* filename,
                      const char* name CV_DEFAULT(NULL),
                      const char** real_name CV_DEFAULT(NULL) );
 
-/*********************************** Measuring Execution Time ***************************/
 
-/* helper functions for RNG initialization and accurate time measurement:
-   uses internal clock counter on x86 */
-CVAPI(int64)  cvGetTickCount( void );
-CVAPI(double) cvGetTickFrequency( void );
-
-/*********************************** Multi-Threading ************************************/
-
-/* retrieve/set the number of threads used in OpenMP implementations */
-CVAPI(int)  cvGetNumThreads( void );
-CVAPI(void) cvSetNumThreads( int threads CV_DEFAULT(0) );
-/* get index of the thread being executed */
-CVAPI(int)  cvGetThreadNum( void );
 
 #ifdef __cplusplus
 }
 
-#include "cxcore.hpp"
 #endif
 
 #endif /*_CXCORE_H_*/

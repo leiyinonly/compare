@@ -1,4 +1,4 @@
-/*M///////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
 //
 //  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
 //
@@ -7,43 +7,44 @@
 //  copy or use the software.
 //
 //
-//                        Intel License Agreement
-//                For Open Source Computer Vision Library
+//                 License For Embedded Computer Vision Library
 //
-// Copyright (C) 2000, Intel Corporation, all rights reserved.
+// Copyright (c) 2008-2012, EMCV Project,
+// Copyright (c) 2000-2007, Intel Corporation,
+// All rights reserved.
 // Third party copyrights are property of their respective owners.
 //
-// Redistribution and use in source and binary forms, with or without modification,
+// Redistribution and use in source and binary forms, with or without modification, 
 // are permitted provided that the following conditions are met:
 //
-//   * Redistribution's of source code must retain the above copyright notice,
-//     this list of conditions and the following disclaimer.
+//    * Redistributions of source code must retain the above copyright notice, 
+//      this list of conditions and the following disclaimer.
+//    * Redistributions in binary form must reproduce the above copyright notice, 
+//      this list of conditions and the following disclaimer in the documentation 
+//      and/or other materials provided with the distribution.
+//    * Neither the name of the copyright holders nor the names of their contributors 
+//      may be used to endorse or promote products derived from this software 
+//      without specific prior written permission.
 //
-//   * Redistribution's in binary form must reproduce the above copyright notice,
-//     this list of conditions and the following disclaimer in the documentation
-//     and/or other materials provided with the distribution.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+// IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
+// INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT 
+// NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, 
+// OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
+// OF SUCH DAMAGE.
 //
-//   * The name of Intel Corporation may not be used to endorse or promote products
-//     derived from this software without specific prior written permission.
-//
-// This software is provided by the copyright holders and contributors "as is" and
-// any express or implied warranties, including, but not limited to, the implied
-// warranties of merchantability and fitness for a particular purpose are disclaimed.
-// In no event shall the Intel Corporation or contributors be liable for any direct,
-// indirect, incidental, special, exemplary, or consequential damages
-// (including, but not limited to, procurement of substitute goods or services;
-// loss of use, data, or profits; or business interruption) however caused
-// and on any theory of liability, whether in contract, strict liability,
-// or tort (including negligence or otherwise) arising in any way out of
-// the use of this software, even if advised of the possibility of such damage.
-//
-//M*/
+// Contributors:
+//    * Shiqi Yu (Shenzhen Institute of Advanced Technology, Chinese Academy of Sciences)
 
 #ifndef _CXCORE_TYPES_H_
 #define _CXCORE_TYPES_H_
 
-#if !defined _CRT_SECURE_NO_DEPRECATE && _MSC_VER > 1300
-#define _CRT_SECURE_NO_DEPRECATE /* to avoid multiple Visual Studio 2005 warnings */
+#ifndef _TMS320C6X
+#  define restrict
 #endif
 
 #ifndef SKIP_INCLUDES
@@ -137,13 +138,14 @@
     #define CVAPI(rettype) CV_EXTERN_C CV_EXPORTS rettype CV_CDECL
 #endif
 
-#if defined _MSC_VER || defined __BORLANDC__
+#if defined _MSC_VER || defined __BORLANDC__ || defined __ARM
 typedef __int64 int64;
 typedef unsigned __int64 uint64;
 #else
 typedef long long int64;
 typedef unsigned long long uint64;
 #endif
+
 
 #ifndef HAVE_IPL
 typedef unsigned char uchar;
@@ -204,117 +206,28 @@ Cv64suf;
 
 CV_INLINE  int  cvRound( double value )
 {
-#if CV_SSE2
-    __m128d t = _mm_load_sd( &value );
-    return _mm_cvtsd_si32(t);
-#elif defined WIN32 && !defined WIN64 && defined _MSC_VER
-    int t;
-    __asm
+    if(value >= 0.0)
     {
-        fld value;
-        fistp t;
+        return int(floor(value + 0.5));
     }
-    return t;
-#elif (defined HAVE_LRINT) || (defined WIN64 && !defined EM64T && defined CV_ICC)
-    return (int)lrint(value);
-#else
-    /*
-     the algorithm was taken from Agner Fog's optimization guide
-     at http://www.agner.org/assem
-     */
-    Cv64suf temp;
-    temp.f = value + 6755399441055744.0;
-    return (int)temp.u;
-#endif
+    return int(ceil(value - 0.5));
 }
 
 
 CV_INLINE  int  cvFloor( double value )
 {
-#if CV_SSE2
-    __m128d t = _mm_load_sd( &value );
-    int i = _mm_cvtsd_si32(t);
-    return i - _mm_movemask_pd(_mm_cmplt_sd(t,_mm_cvtsi32_sd(t,i)));
-#else
-    int temp = cvRound(value);
-    Cv32suf diff;
-    diff.f = (float)(value - temp);
-    return temp - (diff.i < 0);
-#endif
+	return int(floor(value));
 }
 
 
 CV_INLINE  int  cvCeil( double value )
 {
-#if CV_SSE2
-    __m128d t = _mm_load_sd( &value );
-    int i = _mm_cvtsd_si32(t);
-    return i + _mm_movemask_pd(_mm_cmplt_sd(_mm_cvtsi32_sd(t,i),t));
-#else
-    int temp = cvRound(value);
-    Cv32suf diff;
-    diff.f = (float)(temp - value);
-    return temp + (diff.i < 0);
-#endif
+	return int(ceil(value));
 }
 
 #define cvInvSqrt(value) ((float)(1./sqrt(value)))
 #define cvSqrt(value)  ((float)sqrt(value))
 
-CV_INLINE int cvIsNaN( double value )
-{
-#if 1/*defined _MSC_VER || defined __BORLANDC__
-    return _isnan(value);
-#elif defined __GNUC__
-    return isnan(value);
-#else*/
-    Cv64suf ieee754;
-    ieee754.f = value;
-    return ((unsigned)(ieee754.u >> 32) & 0x7fffffff) +
-           ((unsigned)ieee754.u != 0) > 0x7ff00000;
-#endif
-}
-
-
-CV_INLINE int cvIsInf( double value )
-{
-#if 1/*defined _MSC_VER || defined __BORLANDC__
-    return !_finite(value);
-#elif defined __GNUC__
-    return isinf(value);
-#else*/
-    Cv64suf ieee754;
-    ieee754.f = value;
-    return ((unsigned)(ieee754.u >> 32) & 0x7fffffff) == 0x7ff00000 &&
-           (unsigned)ieee754.u == 0;
-#endif
-}
-
-
-/*************** Random number generation *******************/
-
-typedef uint64 CvRNG;
-
-CV_INLINE CvRNG cvRNG( int64 seed CV_DEFAULT(-1))
-{
-    CvRNG rng = seed ? (uint64)seed : (uint64)(int64)-1;
-    return rng;
-}
-
-/* returns random 32-bit unsigned integer */
-CV_INLINE unsigned cvRandInt( CvRNG* rng )
-{
-    uint64 temp = *rng;
-    temp = (uint64)(unsigned)temp*1554115554 + (temp >> 32);
-    *rng = temp;
-    return (unsigned)temp;
-}
-
-/* returns random floating-point number between 0 and 1 */
-CV_INLINE double cvRandReal( CvRNG* rng )
-{
-    return cvRandInt(rng)*2.3283064365386962890625e-10 /* 2^-32 */;
-}
 
 /****************************************************************************************\
 *                                  Image type (IplImage)                                 *
@@ -337,6 +250,7 @@ CV_INLINE double cvRandReal( CvRNG* rng )
 #define IPL_DEPTH_8S  (IPL_DEPTH_SIGN| 8)
 #define IPL_DEPTH_16S (IPL_DEPTH_SIGN|16)
 #define IPL_DEPTH_32S (IPL_DEPTH_SIGN|32)
+#define IPL_DEPTH_64S (IPL_DEPTH_SIGN|64)
 
 #define IPL_DATA_ORDER_PIXEL  0
 #define IPL_DATA_ORDER_PLANE  1
@@ -457,7 +371,8 @@ IplConvKernelFP;
 \****************************************************************************************/
 
 #define CV_CN_MAX     64
-#define CV_CN_SHIFT   3
+//#define CV_CN_SHIFT   3
+#define CV_CN_SHIFT   4
 #define CV_DEPTH_MAX  (1 << CV_CN_SHIFT)
 
 #define CV_8U   0
@@ -468,6 +383,7 @@ IplConvKernelFP;
 #define CV_32F  5
 #define CV_64F  6
 #define CV_USRTYPE1 7
+#define CV_64S  6
 
 #define CV_MAKETYPE(depth,cn) ((depth) + (((cn)-1) << CV_CN_SHIFT))
 #define CV_MAKE_TYPE CV_MAKETYPE
@@ -501,6 +417,13 @@ IplConvKernelFP;
 #define CV_32SC3 CV_MAKETYPE(CV_32S,3)
 #define CV_32SC4 CV_MAKETYPE(CV_32S,4)
 #define CV_32SC(n) CV_MAKETYPE(CV_32S,(n))
+
+#define CV_64SC1 CV_MAKETYPE(CV_64S,1)
+#define CV_64SC2 CV_MAKETYPE(CV_64S,2)
+#define CV_64SC3 CV_MAKETYPE(CV_64S,3)
+#define CV_64SC4 CV_MAKETYPE(CV_64S,4)
+#define CV_64SC(n) CV_MAKETYPE(CV_64S,(n))
+
 
 #define CV_32FC1 CV_MAKETYPE(CV_32F,1)
 #define CV_32FC2 CV_MAKETYPE(CV_32F,2)
@@ -943,7 +866,6 @@ CV_INLINE  CvPoint2D32f  cvPointTo32f( CvPoint point )
     return cvPoint2D32f( (float)point.x, (float)point.y );
 }
 
-
 CV_INLINE  CvPoint  cvPointFrom32f( CvPoint2D32f point )
 {
     CvPoint ipt;
@@ -952,7 +874,6 @@ CV_INLINE  CvPoint  cvPointFrom32f( CvPoint2D32f point )
 
     return ipt;
 }
-
 
 typedef struct CvPoint3D32f
 {

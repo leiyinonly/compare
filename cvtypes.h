@@ -1,4 +1,4 @@
-/*M///////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
 //
 //  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
 //
@@ -7,37 +7,39 @@
 //  copy or use the software.
 //
 //
-//                        Intel License Agreement
-//                For Open Source Computer Vision Library
+//                 License For Embedded Computer Vision Library
 //
-// Copyright (C) 2000, Intel Corporation, all rights reserved.
+// Copyright (c) 2008-2012, EMCV Project,
+// Copyright (c) 2000-2007, Intel Corporation,
+// All rights reserved.
 // Third party copyrights are property of their respective owners.
 //
-// Redistribution and use in source and binary forms, with or without modification,
+// Redistribution and use in source and binary forms, with or without modification, 
 // are permitted provided that the following conditions are met:
 //
-//   * Redistribution's of source code must retain the above copyright notice,
-//     this list of conditions and the following disclaimer.
+//    * Redistributions of source code must retain the above copyright notice, 
+//      this list of conditions and the following disclaimer.
+//    * Redistributions in binary form must reproduce the above copyright notice, 
+//      this list of conditions and the following disclaimer in the documentation 
+//      and/or other materials provided with the distribution.
+//    * Neither the name of the copyright holders nor the names of their contributors 
+//      may be used to endorse or promote products derived from this software 
+//      without specific prior written permission.
 //
-//   * Redistribution's in binary form must reproduce the above copyright notice,
-//     this list of conditions and the following disclaimer in the documentation
-//     and/or other materials provided with the distribution.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+// IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
+// INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT 
+// NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, 
+// OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
+// OF SUCH DAMAGE.
 //
-//   * The name of Intel Corporation may not be used to endorse or promote products
-//     derived from this software without specific prior written permission.
-//
-// This software is provided by the copyright holders and contributors "as is" and
-// any express or implied warranties, including, but not limited to, the implied
-// warranties of merchantability and fitness for a particular purpose are disclaimed.
-// In no event shall the Intel Corporation or contributors be liable for any direct,
-// indirect, incidental, special, exemplary, or consequential damages
-// (including, but not limited to, procurement of substitute goods or services;
-// loss of use, data, or profits; or business interruption) however caused
-// and on any theory of liability, whether in contract, strict liability,
-// or tort (including negligence or otherwise) arising in any way out of
-// the use of this software, even if advised of the possibility of such damage.
-//
-//M*/
+// Contributors:
+//    * Shiqi Yu (Shenzhen Institute of Advanced Technology, Chinese Academy of Sciences)
+
 
 #ifndef _CVTYPES_H_
 #define _CVTYPES_H_
@@ -316,7 +318,6 @@ CvKalman;
 
 /*********************** Haar-like Object Detection structures **************************/
 #define CV_HAAR_MAGIC_VAL    0x42500000
-#define CV_TYPE_NAME_HAAR    "opencv-haar-classifier"
 
 #define CV_IS_HAAR_CLASSIFIER( haar )                                                    \
     ((haar) != NULL &&                                                                   \
@@ -330,7 +331,7 @@ typedef struct CvHaarFeature
     struct
     {
         CvRect r;
-        float weight;
+        int weight;
     } rect[CV_HAAR_FEATURE_MAX];
 }
 CvHaarFeature;
@@ -339,17 +340,17 @@ typedef struct CvHaarClassifier
 {
     int count;
     CvHaarFeature* haar_feature;
-    float* threshold;
+    int* threshold;
     int* left;
     int* right;
-    float* alpha;
+    int* alpha;
 }
 CvHaarClassifier;
 
 typedef struct CvHaarStageClassifier
 {
     int  count;
-    float threshold;
+    int threshold;
     CvHaarClassifier* classifier;
 
     int next;
@@ -366,7 +367,7 @@ typedef struct CvHaarClassifierCascade
     int  count;
     CvSize orig_window_size;
     CvSize real_window_size;
-    double scale;
+    int scale32x;
     CvHaarStageClassifier* stage_classifier;
     CvHidHaarClassifierCascade* hid_cascade;
 }
@@ -382,3 +383,4 @@ CvAvgComp;
 #endif /*_CVTYPES_H_*/
 
 /* End of file. */
+

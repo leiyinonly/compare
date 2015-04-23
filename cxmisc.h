@@ -1,4 +1,4 @@
-/*M///////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
 //
 //  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
 //
@@ -7,37 +7,39 @@
 //  copy or use the software.
 //
 //
-//                        Intel License Agreement
-//                For Open Source Computer Vision Library
+//                 License For Embedded Computer Vision Library
 //
-// Copyright (C) 2000, Intel Corporation, all rights reserved.
+// Copyright (c) 2008-2012, EMCV Project,
+// Copyright (c) 2000-2007, Intel Corporation,
+// All rights reserved.
 // Third party copyrights are property of their respective owners.
 //
-// Redistribution and use in source and binary forms, with or without modification,
+// Redistribution and use in source and binary forms, with or without modification, 
 // are permitted provided that the following conditions are met:
 //
-//   * Redistribution's of source code must retain the above copyright notice,
-//     this list of conditions and the following disclaimer.
+//    * Redistributions of source code must retain the above copyright notice, 
+//      this list of conditions and the following disclaimer.
+//    * Redistributions in binary form must reproduce the above copyright notice, 
+//      this list of conditions and the following disclaimer in the documentation 
+//      and/or other materials provided with the distribution.
+//    * Neither the name of the copyright holders nor the names of their contributors 
+//      may be used to endorse or promote products derived from this software 
+//      without specific prior written permission.
 //
-//   * Redistribution's in binary form must reproduce the above copyright notice,
-//     this list of conditions and the following disclaimer in the documentation
-//     and/or other materials provided with the distribution.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+// IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
+// INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT 
+// NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, 
+// OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
+// OF SUCH DAMAGE.
 //
-//   * The name of Intel Corporation may not be used to endorse or promote products
-//     derived from this software without specific prior written permission.
-//
-// This software is provided by the copyright holders and contributors "as is" and
-// any express or implied warranties, including, but not limited to, the implied
-// warranties of merchantability and fitness for a particular purpose are disclaimed.
-// In no event shall the Intel Corporation or contributors be liable for any direct,
-// indirect, incidental, special, exemplary, or consequential damages
-// (including, but not limited to, procurement of substitute goods or services;
-// loss of use, data, or profits; or business interruption) however caused
-// and on any theory of liability, whether in contract, strict liability,
-// or tort (including negligence or otherwise) arising in any way out of
-// the use of this software, even if advised of the possibility of such damage.
-//
-//M*/
+// Contributors:
+//    * Shiqi Yu (Shenzhen Institute of Advanced Technology, Chinese Academy of Sciences)
+
 
 /* The header is mostly for internal use and it is likely to change.
    It contains some macro definitions that are used in cxcore, cv, cvaux
@@ -47,15 +49,21 @@
 #ifndef _CXCORE_MISC_H_
 #define _CXCORE_MISC_H_
 
-#ifdef HAVE_CONFIG_H
-    #include "cvconfig.h"
-#endif
-
 #include <limits.h>
-#ifdef _OPENMP
-#include "omp.h"
-#endif
 
+//#ifdef __GNUC__
+//    #undef alloca
+//    #define alloca __builtin_alloca
+//#elif defined WIN32 || defined _WIN32 || defined WIN64 || defined _WIN64 || \
+//      defined WINCE || defined _MSC_VER || defined __BORLANDC__
+//    #include <malloc.h>
+//#elif defined HAVE_ALLOCA_H
+//    #include <alloca.h>
+//#elif defined HAVE_ALLOCA
+//    #include <stdlib.h>
+//#else
+//    #error "No alloca!"
+//#endif
 /****************************************************************************************\
 *                              Compile-time tuning parameters                            *
 \****************************************************************************************/
@@ -70,11 +78,25 @@
 #define  CV_MAX_LOCAL_SIZE  \
     (CV_MAX_LOCAL_MAT_SIZE*CV_MAX_LOCAL_MAT_SIZE*(int)sizeof(double))
 
+#ifdef _TMS320C6X
+/* default image row align (in bytes) */
+#define  CV_DEFAULT_IMAGE_ROW_ALIGN  8
+
+/* matrices are continuous by default */
+#define  CV_DEFAULT_MAT_ROW_ALIGN  8
+
+/* maximum size of dynamic memory buffer.
+   cvAlloc reports an error if a larger block is requested. */
+#define  CV_MAX_ALLOC_SIZE    (((size_t)1 << (sizeof(size_t)*8-2)))
+
+/* the alignment of all the allocated buffers */
+#define  CV_MALLOC_ALIGN    64
+#else
 /* default image row align (in bytes) */
 #define  CV_DEFAULT_IMAGE_ROW_ALIGN  4
 
 /* matrices are continuous by default */
-#define  CV_DEFAULT_MAT_ROW_ALIGN  1
+#define  CV_DEFAULT_MAT_ROW_ALIGN  4
 
 /* maximum size of dynamic memory buffer.
    cvAlloc reports an error if a larger block is requested. */
@@ -82,6 +104,7 @@
 
 /* the alignment of all the allocated buffers */
 #define  CV_MALLOC_ALIGN    32
+#endif
 
 /* default alignment for dynamic data strucutures, resided in storages. */
 #define  CV_STRUCT_ALIGN    ((int)sizeof(double))
@@ -118,24 +141,9 @@
 *                                  Common declarations                                   *
 \****************************************************************************************/
 
-/* get alloca declaration */
-#ifdef __GNUC__
-    #undef alloca
-    #define alloca __builtin_alloca
-#elif defined WIN32 || defined WIN64
-    #if defined _MSC_VER || defined __BORLANDC__
-        #include <malloc.h>
-    #endif
-#elif defined HAVE_ALLOCA_H
-    #include <alloca.h>
-#elif defined HAVE_ALLOCA
-    #include <stdlib.h>
-//#elif
-    #error
-#endif
 
 /* ! DO NOT make it an inline function */
-#define cvStackAlloc(size) cvAlignPtr( malloc((size) + CV_MALLOC_ALIGN), CV_MALLOC_ALIGN )
+//#define cvStackAlloc(size) cvAlignPtr( (void*)(alloca((size) + CV_MALLOC_ALIGN)), CV_MALLOC_ALIGN )
 
 #if defined _MSC_VER || defined __BORLANDC__
     #define CV_BIG_INT(n)   n##I64
@@ -711,7 +719,7 @@ typedef enum CvCmpOp {
 
 typedef struct CvFuncTable
 {
-    void*   fn_2d[CV_DEPTH_MAX];
+   void*   fn_2d[CV_DEPTH_MAX];
 }
 CvFuncTable;
 
@@ -920,3 +928,4 @@ static void icvInit##FUNCNAME##FLAG##Table( CvBtFuncTable* table )  \
 
 
 #endif /*_CXCORE_MISC_H_*/
+
