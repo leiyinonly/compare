@@ -1,4 +1,4 @@
-/*M///////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
 //
 //  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
 //
@@ -7,37 +7,39 @@
 //  copy or use the software.
 //
 //
-//                        Intel License Agreement
-//                For Open Source Computer Vision Library
+//                 License For Embedded Computer Vision Library
 //
-// Copyright (C) 2000, Intel Corporation, all rights reserved.
+// Copyright (c) 2008-2012, EMCV Project,
+// Copyright (c) 2000-2007, Intel Corporation,
+// All rights reserved.
 // Third party copyrights are property of their respective owners.
 //
-// Redistribution and use in source and binary forms, with or without modification,
+// Redistribution and use in source and binary forms, with or without modification, 
 // are permitted provided that the following conditions are met:
 //
-//   * Redistribution's of source code must retain the above copyright notice,
-//     this list of conditions and the following disclaimer.
+//    * Redistributions of source code must retain the above copyright notice, 
+//      this list of conditions and the following disclaimer.
+//    * Redistributions in binary form must reproduce the above copyright notice, 
+//      this list of conditions and the following disclaimer in the documentation 
+//      and/or other materials provided with the distribution.
+//    * Neither the name of the copyright holders nor the names of their contributors 
+//      may be used to endorse or promote products derived from this software 
+//      without specific prior written permission.
 //
-//   * Redistribution's in binary form must reproduce the above copyright notice,
-//     this list of conditions and the following disclaimer in the documentation
-//     and/or other materials provided with the distribution.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+// IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
+// INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT 
+// NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, 
+// OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
+// OF SUCH DAMAGE.
 //
-//   * The name of Intel Corporation may not be used to endorse or promote products
-//     derived from this software without specific prior written permission.
-//
-// This software is provided by the copyright holders and contributors "as is" and
-// any express or implied warranties, including, but not limited to, the implied
-// warranties of merchantability and fitness for a particular purpose are disclaimed.
-// In no event shall the Intel Corporation or contributors be liable for any direct,
-// indirect, incidental, special, exemplary, or consequential damages
-// (including, but not limited to, procurement of substitute goods or services;
-// loss of use, data, or profits; or business interruption) however caused
-// and on any theory of liability, whether in contract, strict liability,
-// or tort (including negligence or otherwise) arising in any way out of
-// the use of this software, even if advised of the possibility of such damage.
-//
-//M*/
+// Contributors:
+//    * Shiqi Yu (Shenzhen Institute of Advanced Technology, Chinese Academy of Sciences)
+
 
 /* ////////////////////////////////////////////////////////////////////
 //
@@ -48,16 +50,7 @@
 
 #include "_cxcore.h"
 
-static struct
-{
-    Cv_iplCreateImageHeader  createHeader;
-    Cv_iplAllocateImageData  allocateData;
-    Cv_iplDeallocate  deallocate;
-    Cv_iplCreateROI  createROI;
-    Cv_iplCloneImage  cloneImage;
-}
-CvIPL;
-
+/*
 // Makes the library use native IPL image allocators
 CV_IMPL void
 cvSetIPLAllocators( Cv_iplCreateImageHeader createHeader,
@@ -85,7 +78,7 @@ cvSetIPLAllocators( Cv_iplCreateImageHeader createHeader,
 
     __END__;
 }
-
+*/
 
 /****************************************************************************************\
 *                               CvMat creation and basic operations                      *
@@ -394,7 +387,7 @@ cvCloneMatND( const CvMatND* src )
     if( !CV_IS_MATND_HDR( src ))
         CV_ERROR( CV_StsBadArg, "Bad CvMatND header" );
 
-    sizes = (int*)malloc( src->dims*sizeof(sizes[0]) );
+    sizes = (int*)cvAlloc( src->dims*sizeof(sizes[0]) );
 
     for( i = 0; i < src->dims; i++ )
         sizes[i] = src->dim[i].size;
@@ -407,6 +400,7 @@ cvCloneMatND( const CvMatND* src )
         CV_CALL( cvCopy( src, dst ));
     }
 
+	cvFree(&sizes);
     __END__;
 
     return dst;
@@ -979,8 +973,28 @@ cvCreateData( CvArr* arr )
         if( img->imageData != 0 )
             CV_ERROR( CV_StsError, "Data is already allocated" );
 
-        	CV_CALL( img->imageData = img->imageDataOrigin =
+        //if( !CvIPL.allocateData )
+        {
+            CV_CALL( img->imageData = img->imageDataOrigin = 
                         (char*)cvAlloc( (size_t)img->imageSize ));
+        }
+/*        else
+        {
+            int depth = img->depth;
+            int width = img->width;
+
+            if( img->depth == IPL_DEPTH_32F || img->nChannels == 64 )
+            {
+                img->width *= img->depth == IPL_DEPTH_32F ? sizeof(float) : sizeof(double);
+                img->depth = IPL_DEPTH_8U;
+            }
+
+            CvIPL.allocateData( img, 0, 0 );
+
+            img->width = width;
+            img->depth = depth;
+        }
+*/
     }
     else if( CV_IS_MATND_HDR( arr ))
     {
@@ -1136,16 +1150,16 @@ cvReleaseData( CvArr* arr )
     {
         IplImage* img = (IplImage*)arr;
 
-        if( !CvIPL.deallocate )
+        //if( !CvIPL.deallocate )
         {
             char* ptr = img->imageDataOrigin;
             img->imageData = img->imageDataOrigin = 0;
             cvFree( &ptr );
         }
-        else
-        {
-            CvIPL.deallocate( img, IPL_IMAGE_DATA );
-        }
+        //else
+        //{
+        //    CvIPL.deallocate( img, IPL_IMAGE_DATA );
+        //}
     }
     else
     {
@@ -1962,7 +1976,7 @@ cvPtr1D( const CvArr* arr, int idx, int* _type )
         else
         {
             int i, n = m->dims;
-            int* _idx = (int*)cvStackAlloc(n*sizeof(_idx[0]));
+            int* _idx = (int*)cvAlloc(n*sizeof(_idx[0]));
             
             for( i = n - 1; i >= 0; i-- )
             {
@@ -1971,6 +1985,7 @@ cvPtr1D( const CvArr* arr, int idx, int* _type )
                 idx = t;
             }
             ptr = icvGetNodePtr( (CvSparseMat*)arr, _idx, _type, 1, 0 );
+			cvFree(&_idx);
         }
     }
     else
@@ -3214,7 +3229,7 @@ static IplROI* icvCreateROI( int coi, int xOffset, int yOffset, int width, int h
 
     __BEGIN__;
 
-    if( !CvIPL.createROI )
+    //if( !CvIPL.createROI )
     {
         CV_CALL( roi = (IplROI*)cvAlloc( sizeof(*roi)));
 
@@ -3224,10 +3239,10 @@ static IplROI* icvCreateROI( int coi, int xOffset, int yOffset, int width, int h
         roi->width = width;
         roi->height = height;
     }
-    else
-    {
-        roi = CvIPL.createROI( coi, xOffset, yOffset, width, height );
-    }
+    //else
+    //{
+    //    roi = CvIPL.createROI( coi, xOffset, yOffset, width, height );
+    //}
 
     __END__;
 
@@ -3266,11 +3281,26 @@ cvCreateImageHeader( CvSize size, int depth, int channels )
 
     __BEGIN__;
 
-
+    //if( !CvIPL.createHeader )
+    {
         CV_CALL( img = (IplImage *)cvAlloc( sizeof( *img )));
         CV_CALL( cvInitImageHeader( img, size, depth, channels, IPL_ORIGIN_TL,
                                     CV_DEFAULT_IMAGE_ROW_ALIGN ));
+    }
+/*
+    else
+    {
+        char *colorModel;
+        char *channelSeq;
 
+        icvGetColorModel( channels, &colorModel, &channelSeq );
+
+        img = CvIPL.createHeader( channels, 0, depth, colorModel, channelSeq,
+                                  IPL_DATA_ORDER_PIXEL, IPL_ORIGIN_TL,
+                                  CV_DEFAULT_IMAGE_ROW_ALIGN,
+                                  size.width, size.height, 0, 0, 0, 0 );
+    }
+*/
     __END__;
 
     if( cvGetErrStatus() < 0 && img )
@@ -3331,7 +3361,7 @@ cvInitImageHeader( IplImage * image, CvSize size, int depth,
 
     if( (depth != (int)IPL_DEPTH_1U && depth != (int)IPL_DEPTH_8U &&
          depth != (int)IPL_DEPTH_8S && depth != (int)IPL_DEPTH_16U &&
-         depth != (int)IPL_DEPTH_16S && depth != (int)IPL_DEPTH_32S &&
+         depth != (int)IPL_DEPTH_16S && depth != (int)IPL_DEPTH_32S && depth != (int)IPL_DEPTH_64S &&
          depth != (int)IPL_DEPTH_32F && depth != (int)IPL_DEPTH_64F) ||
          channels < 0 )
         CV_ERROR( CV_BadDepth, "Unsupported format" );
@@ -3383,15 +3413,15 @@ cvReleaseImageHeader( IplImage** image )
         IplImage* img = *image;
         *image = 0;
         
-        if( !CvIPL.deallocate )
-        {
+        //if( !CvIPL.deallocate )
+        //{
             cvFree( &img->roi );
             cvFree( &img );
-        }
-        else
-        {
-            CvIPL.deallocate( img, IPL_IMAGE_HEADER | IPL_IMAGE_ROI );
-        }
+        //}
+        //else
+        //{
+        //    CvIPL.deallocate( img, IPL_IMAGE_HEADER | IPL_IMAGE_ROI );
+        //}
     }
     __END__;
 }
@@ -3482,15 +3512,15 @@ cvResetImageROI( IplImage* image )
 
     if( image->roi )
     {
-        if( !CvIPL.deallocate )
+        //if( !CvIPL.deallocate )
         {
             cvFree( &image->roi );
         }
-        else
-        {
-            CvIPL.deallocate( image, IPL_IMAGE_ROI );
-            image->roi = 0;
-        }
+        //else
+        //{
+        //    CvIPL.deallocate( image, IPL_IMAGE_ROI );
+        //    image->roi = 0;
+        //}
     }
 
     __END__;
@@ -3580,7 +3610,7 @@ cvCloneImage( const IplImage* src )
     if( !CV_IS_IMAGE_HDR( src ))
         CV_ERROR( CV_StsBadArg, "Bad image header" );
 
-    if( !CvIPL.cloneImage )
+    //if( !CvIPL.cloneImage )
     {
         CV_CALL( dst = (IplImage*)cvAlloc( sizeof(*dst)));
 
@@ -3601,10 +3631,10 @@ cvCloneImage( const IplImage* src )
             memcpy( dst->imageData, src->imageData, size );
         }
     }
-    else
-    {
-        dst = CvIPL.cloneImage( src );
-    }
+    //else
+    //{
+    //    dst = CvIPL.cloneImage( src );
+    //}
 
     __END__;
 
